@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Correct Microsoft Word transcripts while listening to the recording, with keyboard shortcuts. Runs entirely in your browser." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232456c9'/%3E%3Cpath d='M9 10h14M9 16h10M9 22h12' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <title>Transcript Editor</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" /><path d="M9 10h14M9 16h10M9 22h12" /></svg>
+        <span>Transcript Editor</span>
+      </div>
+      <div class="doc-info" id="docInfo"></div>
+      <div class="topbar-actions">
+        <span class="save-status" id="saveStatus" aria-live="polite"></span>
+        <button type="button" id="openDocBtn">Open transcript…</button>
+        <button type="button" id="exportBtn" class="primary" disabled>Export .docx</button>
+        <button type="button" id="closeBtn" class="ghost" hidden title="Close the transcript and clear the saved copy in this browser">Close</button>
+      </div>
+      <input type="file" id="docInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+      <input type="file" id="audioInput" accept="audio/*,video/mp4,video/webm,.m4a,.mp3,.wav,.mp4,.aac,.ogg,.oga,.opus,.webm,.flac" hidden />
+    </header>
+
+    <main class="layout">
+      <section class="transcript-pane" id="transcriptPane" aria-label="Transcript">
+        <div class="empty" id="emptyState">
+          <div class="dropzone">
+            <h1>Correct a Word transcript while you listen</h1>
+            <p>Drop your Word transcript (<strong>.docx</strong>) and the <strong>audio recording</strong> anywhere on this page, or choose them:</p>
+            <div class="empty-actions">
+              <button type="button" class="primary" data-open="doc">Choose transcript (.docx)</button>
+              <button type="button" data-open="audio">Choose audio</button>
+            </div>
+            <ol class="steps">
+              <li>In Word for the web, add the transcript to your document (with speakers and timestamps) and download it as a .docx.</li>
+              <li>Download the recording too: it's in the <em>Transcribed Files</em> folder of your OneDrive. The .docx only links to it.</li>
+              <li>Edit here, then <strong>Export .docx</strong>. Your edits are autosaved in this browser and your files never leave your computer.</li>
+            </ol>
+          </div>
+        </div>
+        <div class="transcript" id="transcript" hidden></div>
+      </section>
+
+      <aside class="side-pane">
+        <section class="card player" aria-label="Audio player">
+          <div class="card-head">
+            <h2>Audio</h2>
+            <button type="button" class="small" data-open="audio" id="openAudioBtn">Open audio…</button>
+          </div>
+          <div class="audio-name" id="audioName">No audio loaded</div>
+          <audio id="audio" preload="auto"></audio>
+          <div class="transport">
+            <button type="button" class="icon-btn" id="backBtn" aria-label="Back">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6 5 12l6 6M19 6l-6 6 6 6" /></svg>
+              <span class="skip-label" data-skip></span>
+            </button>
+            <button type="button" class="icon-btn play" id="playBtn" aria-label="Play">
+              <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-play"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-pause"><path d="M8 5h3v14H8zM13 5h3v14h-3z" /></svg>
+            </button>
+            <button type="button" class="icon-btn" id="fwdBtn" aria-label="Forward">
+              <span class="skip-label" data-skip></span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 6 6 6-6 6M5 6l6 6-6 6" /></svg>
+            </button>
+          </div>
+          <input type="range" id="seek" min="0" max="0" step="0.01" value="0" aria-label="Position" disabled />
+          <div class="times"><span id="curTime">0:00</span><span id="durTime">0:00</span></div>
+          <div class="player-options">
+            <label>Speed <select id="rate"></select></label>
+            <label class="check"><input type="checkbox" id="follow" /> Follow audio</label>
+          </div>
+        </section>
+
+        <section class="card" aria-label="Keyboard shortcuts">
+          <div class="card-head">
+            <h2>Keyboard shortcuts</h2>
+            <button type="button" class="small" id="settingsBtn">Customise…</button>
+          </div>
+          <dl class="shortcut-list" id="shortcutList"></dl>
+          <p class="hint" id="macHint" hidden>
+            On a Mac, press <kbd>fn</kbd> with the F-keys, or turn on <em>System Settings → Keyboard → Keyboard Shortcuts → Function Keys → Use F1, F2, etc. keys as standard function keys</em>. Or remap them with <em>Customise</em>.
+          </p>
+        </section>
+      </aside>
+    </main>
+
+    <dialog id="settingsDialog" aria-labelledby="settingsTitle">
+      <form method="dialog">
+        <h2 id="settingsTitle">Customise shortcuts</h2>
+        <p class="hint">Click a shortcut, then press the new key combination. <kbd>Esc</kbd> cancels.</p>
+        <table class="binding-table"><tbody id="bindingRows"></tbody></table>
+        <p class="binding-msg" id="bindingMsg" role="status"></p>
+        <div class="number-settings">
+          <label>Skip back/forward by <input type="number" id="skipSeconds" min="1" max="600" step="1" /> seconds</label>
+          <label>When pausing, jump back <input type="number" id="rewindSeconds" min="0" max="60" step="0.1" /> seconds</label>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" id="resetSettings" class="ghost">Restore defaults</button>
+          <button type="submit" class="primary">Done</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="drop-overlay" id="dropOverlay" hidden><div>Drop your transcript (.docx) and/or audio</div></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
