@@ -202,6 +202,36 @@ function setAudioName(name: string | null): void {
   els.seek.disabled = !name;
 }
 
+// The audio position is also kept in localStorage, which is written synchronously, so it
+// survives a reload that happens before the (asynchronous) IndexedDB autosave completes.
+const POSITION_KEY = 'word-transcript-editor.position';
+
+function rememberPosition(): void {
+  if (!player.loaded || pendingPosition !== null) return;
+  try {
+    localStorage.setItem(POSITION_KEY, String(els.audio.currentTime));
+  } catch {
+    // Storage unavailable: the IndexedDB session still holds an approximate position.
+  }
+}
+
+function recalledPosition(): number | undefined {
+  try {
+    const value = Number(localStorage.getItem(POSITION_KEY));
+    return localStorage.getItem(POSITION_KEY) !== null && Number.isFinite(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function forgetPosition(): void {
+  try {
+    localStorage.removeItem(POSITION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 function openAudio(blob: Blob, name: string, opts: { persist: boolean; position?: number }): void {
   if (audioUrl) URL.revokeObjectURL(audioUrl);
   audioUrl = URL.createObjectURL(blob);
@@ -211,6 +241,7 @@ function openAudio(blob: Blob, name: string, opts: { persist: boolean; position?
   player.setRate(rate);
   setAudioName(name);
   if (opts.persist) {
+    forgetPosition();
     storage.saveAudio({ name, blob }).catch((err) => {
       console.error(err);
       toast("The audio couldn't be saved in this browser, so you'll need to reopen it after a refresh.", 'error');
@@ -247,7 +278,7 @@ async function restore(): Promise<void> {
     player.setRate(session.rate || 1);
     setSaveStatus('Saved in this browser');
   }
-  if (audio) openAudio(audio.blob, audio.name, { persist: false, position: session?.position });
+  if (audio) openAudio(audio.blob, audio.name, { persist: false, position: recalledPosition() ?? session?.position });
   if (session) {
     const when = new Date(session.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     toast(`Restored your work on ${session.docName} (last saved ${when})`, 'info', 3500);
@@ -288,6 +319,7 @@ async function closeAll(): Promise<void> {
   dirty = false;
   // Clear storage before updating the UI, so a reload straight after can't restore the old session.
   await storage.clearAll().catch((err) => console.error(err));
+  forgetPosition();
   player.unload();
   if (audioUrl) URL.revokeObjectURL(audioUrl);
   audioUrl = null;
@@ -357,12 +389,16 @@ els.audio.addEventListener('timeupdate', () => {
   updateTime();
   if (Date.now() - lastPositionSave > 5000) void saveNow(true);
 });
-els.audio.addEventListener('seeked', updateTime);
+els.audio.addEventListener('seeked', () => {
+  updateTime();
+  rememberPosition();
+});
 els.audio.addEventListener('play', () => {
   els.playBtn.classList.add('playing');
   els.playBtn.setAttribute('aria-label', 'Pause');
 });
 els.audio.addEventListener('pause', () => {
+  rememberPosition();
   els.playBtn.classList.remove('playing');
   els.playBtn.setAttribute('aria-label', 'Play');
   void saveNow(true);
@@ -621,8 +657,12 @@ window.addEventListener('drop', (e) => {
 
 // Flush pending edits when the tab is hidden or closed.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') void saveNow(true);
+  if (document.visibilityState === 'hidden') {
+    rememberPosition();
+    void saveNow(true);
+  }
 });
+window.addEventListener('pagehide', rememberPosition);
 
 // ---------------------------------------------------------------------------------------------
 // Start
