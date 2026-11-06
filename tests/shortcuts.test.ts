@@ -65,6 +65,12 @@ describe('validateBinding', () => {
     ...mods,
   });
 
+  it('reserves Ctrl/⌘+Enter for splitting a box', () => {
+    expect(validateBinding(b('Enter', { ctrl: true }))).toMatch(/splitting/);
+    expect(validateBinding(b('Enter', { meta: true }))).toMatch(/splitting/);
+    expect(validateBinding(b('Enter', { ctrl: true, shift: true }))).toBeNull();
+  });
+
   it('accepts F-keys alone and modified letters', () => {
     expect(validateBinding(b('F4'))).toBeNull();
     expect(validateBinding(b('KeyJ', { ctrl: true }))).toBeNull();

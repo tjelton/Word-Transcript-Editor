@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeSegmentIndex, formatClock, parseStamp } from '../src/time';
+import { activeSegmentIndex, formatClock, formatStamp, parseStamp } from '../src/time';
 
 describe('parseStamp', () => {
   it('parses Word timestamp formats', () => {
@@ -33,5 +33,22 @@ describe('activeSegmentIndex', () => {
     expect(activeSegmentIndex(starts, 6.9)).toBe(1);
     expect(activeSegmentIndex(starts, 100)).toBe(2);
     expect(activeSegmentIndex([], 5)).toBe(-1);
+  });
+});
+
+describe('formatStamp', () => {
+  it('matches the style of the document\'s timestamps', () => {
+    expect(formatStamp(65.9, '00:00:03')).toBe('00:01:05');
+    expect(formatStamp(3725, '00:00:03')).toBe('01:02:05');
+    expect(formatStamp(65.9, '0:03')).toBe('1:05');
+    expect(formatStamp(65, '00:03')).toBe('01:05');
+    expect(formatStamp(3725, '0:03')).toBe('1:02:05');
+    expect(formatStamp(-1, '0:03')).toBe('0:00');
+  });
+
+  it('round-trips through parseStamp (to the whole second)', () => {
+    for (const t of [0, 3.23, 59.99, 61, 3599.5, 7322.4]) {
+      expect(parseStamp(formatStamp(t, '00:00:00'))).toBe(Math.floor(t));
+    }
   });
 });

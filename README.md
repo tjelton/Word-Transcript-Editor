@@ -16,6 +16,8 @@ Correct transcripts made by **Microsoft Word's Transcribe** feature while listen
 | <kbd>F3</kbd> | Play / pause. Pausing jumps back 0.5 seconds so you re-hear the last words when you resume |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Ctrl</kbd>+<kbd>.</kbd> | Slower / faster playback (0.5×–2×) |
 | <kbd>Alt/⌥</kbd>+<kbd>1</kbd>…<kbd>9</kbd> | Set the speaker of the segment you're editing (in the order of the speaker list) |
+| <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (<kbd>⌘</kbd>+<kbd>↩</kbd> on a Mac) | Split the box at the cursor |
+| <kbd>Backspace</kbd> at the start of a box | Merge it into the box above |
 | Click a timestamp | Play from that segment |
 
 Shortcuts work while you're typing in the transcript. You can remap them and change the 5 s / 0.5 s amounts under **Customise…**; your choices are remembered in the browser.
@@ -23,6 +25,16 @@ Shortcuts work while you're typing in the transcript. You can remap them and cha
 > **Mac users:** by default F1/F2/F3 control screen brightness and Mission Control. Hold <kbd>fn</kbd> while pressing them, or turn on
 > *System Settings → Keyboard → Keyboard Shortcuts → Function Keys → "Use F1, F2, etc. keys as standard function keys"*,
 > or remap the shortcuts in the app.
+
+### Fixing where boxes start and end
+
+Word sometimes starts a new box in the middle of a sentence, or puts two speakers in one box.
+
+- **Split a box:** put the cursor where the new box should begin and press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (<kbd>⌘</kbd>+<kbd>↩</kbd> on a Mac). The text after the cursor moves into a new box with the same speaker; press <kbd>Alt/⌥</kbd>+<kbd>1</kbd>…<kbd>9</kbd> to change it. If the audio is paused inside that box, the new box starts at the audio position. Otherwise the start time is estimated from where the cursor is in the text.
+- **Add an empty box:** hover between two boxes and click **+ Add box**. It starts at the audio position if that falls between the two boxes, otherwise between them.
+- **Merge boxes:** press <kbd>Backspace</kbd> at the very start of a box to join it onto the end of the box above. Backspace in an empty box removes it.
+
+New boxes get a timestamp in the same style as the rest of the document, and they're included in the export.
 
 **Follow audio** (on by default) highlights the segment being played and scrolls it into view. It won't scroll while you're typing.
 

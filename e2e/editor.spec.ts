@@ -186,3 +186,65 @@ test('shortcuts can be remapped and are remembered', async ({ page }) => {
   await page.reload();
   await expect(page.locator('#shortcutList')).toContainText(/J/);
 });
+
+test('boxes can be split at the cursor, added between boxes and merged back', async ({ page }) => {
+  await openFiles(page);
+  const texts = page.locator('.seg-text');
+
+  // Split the first box after "key" while the audio is at 4.6 s: the new box starts there.
+  await setAudioTime(page, 4.6);
+  await texts.first().click();
+  await texts.first().press('Home');
+  for (let i = 0; i < 'Cleanliness is the key'.length; i++) await texts.first().press('ArrowRight');
+  await texts.first().press('Control+Enter');
+  await expect(page.locator('.seg')).toHaveCount(4);
+  await expect(texts.nth(0)).toHaveValue('Cleanliness is the key');
+  await expect(texts.nth(1)).toHaveValue('to a healthy, happy life.');
+  await expect(texts.nth(1)).toBeFocused();
+  await expect(page.locator('.stamp')).toHaveText(['00:00:03', '00:00:04', '00:00:06', '00:00:08']);
+  await expect(page.locator('#docInfo')).toContainText('4 segments');
+
+  // Add an empty box between "Cleanliness." (6.83 s) and "This is a test." (8.11 s) at 7.5 s.
+  await setAudioTime(page, 7.5);
+  const gap = page.locator('.gap').nth(3);
+  await gap.hover();
+  await gap.locator('.add-box').click();
+  await expect(page.locator('.seg')).toHaveCount(5);
+  await expect(texts.nth(3)).toBeFocused();
+  await page.keyboard.type('Yes, exactly.');
+  await page.keyboard.press('Alt+Digit2');
+  await expect(page.locator('.stamp')).toHaveText(['00:00:03', '00:00:04', '00:00:06', '00:00:07', '00:00:08']);
+  await expect(page.locator('select.speaker').nth(3)).toHaveValue('Speaker 2');
+
+  // The new box is highlighted when its audio plays.
+  await setAudioTime(page, 7.6);
+  await expect(page.locator('.seg').nth(3)).toHaveClass(/active/);
+
+  // Backspace at the start of a box merges it into the one above.
+  await texts.nth(1).click();
+  await texts.nth(1).press('Home');
+  await texts.nth(1).press('Backspace');
+  await expect(page.locator('.seg')).toHaveCount(4);
+  await expect(texts.nth(0)).toHaveValue('Cleanliness is the key to a healthy, happy life.');
+  await page.keyboard.type('!');
+  await expect(texts.nth(0)).toHaveValue('Cleanliness is the key! to a healthy, happy life.');
+
+  await expect(page.locator('#saveStatus')).toHaveText('Saved in this browser');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#exportBtn').click()]);
+  expect(await docxParagraphs(await download.path())).toEqual([
+    'Transcript',
+    '00:00:03 Speaker 1',
+    'Cleanliness is the key! to a healthy, happy life.',
+    '00:00:06 Speaker 1',
+    'Cleanliness.',
+    '00:00:07 Speaker 2',
+    'Yes, exactly.',
+    '00:00:08 Speaker 2',
+    'This is a test.',
+  ]);
+
+  // Added boxes survive a reload.
+  await page.reload();
+  await expect(page.locator('.seg')).toHaveCount(4);
+  await expect(texts.nth(2)).toHaveValue('Yes, exactly.');
+});

@@ -143,6 +143,35 @@ describe('exportTranscriptDocx', () => {
     expect(tr.speakerNames).toEqual([null, null, 'Interviewer']);
   });
 
+  it('exports boxes that were added or split, with their own timings', async () => {
+    const { segments } = await parseTranscriptDocx(SAMPLE);
+    // Split the first segment at 4.9 s and add a new Speaker 2 box at 7.9 s.
+    segments[0].text = 'Cleanliness is the key';
+    segments[0].end = 4.9;
+    segments.splice(1, 0, { id: 'a', stamp: '00:00:04', start: 4.9, end: 6.27, speaker: 'Speaker 1', text: 'to a healthy, happy life.' });
+    segments.splice(3, 0, { id: 'b', stamp: '00:00:07', start: 7.9, end: null, speaker: 'Speaker 2', text: 'Yes.' });
+
+    const out = await exportTranscriptDocx(SAMPLE, segments);
+    const reparsed = await parseTranscriptDocx(out);
+    expect(reparsed.segments.map(({ stamp, start, end, speaker, text }) => ({ stamp, start, end, speaker, text }))).toEqual([
+      { stamp: '00:00:03', start: 3.23, end: 4.9, speaker: 'Speaker 1', text: 'Cleanliness is the key' },
+      { stamp: '00:00:04', start: 4.9, end: 6.27, speaker: 'Speaker 1', text: 'to a healthy, happy life.' },
+      { stamp: '00:00:06', start: 6.83, end: 7.55, speaker: 'Speaker 1', text: 'Cleanliness.' },
+      { stamp: '00:00:07', start: 7.9, end: 8.11, speaker: 'Speaker 2', text: 'Yes.' },
+      { stamp: '00:00:08', start: 8.11, end: 9.309999999999999, speaker: 'Speaker 2', text: 'This is a test.' },
+    ]);
+
+    const xml = await readPart(out, 'customXML/item.xml');
+    const json = JSON.parse(new DOMParser().parseFromString(xml, 'application/xml').documentElement.textContent!);
+    expect(json.descriptor.transcription.transcriptSegments[3]).toEqual({
+      text: 'Yes.',
+      language: 'en',
+      start: 7.9,
+      end: 8.11,
+      speakerId: 1,
+    });
+  });
+
   it('writes multi-line text as separate paragraphs and preserves whitespace', async () => {
     const { segments } = await parseTranscriptDocx(SAMPLE);
     segments[0].text = 'First line\n  Second line with leading spaces';

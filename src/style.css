@@ -297,7 +297,59 @@ kbd {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+}
+
+/* The space between boxes; hovering it reveals "+ Add box". */
+.gap {
+  position: relative;
+  height: 4px;
+  flex: none;
+}
+
+.gap::before {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+.add-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s;
+}
+
+.gap:hover .add-box {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.add-box:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (hover: none) {
+  .gap {
+    height: 26px;
+  }
+
+  .add-box {
+    opacity: 0.8;
+    pointer-events: auto;
+  }
 }
 
 .seg {

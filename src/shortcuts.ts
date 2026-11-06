@@ -92,6 +92,9 @@ export function validateBinding(b: KeyBinding): string | null {
   if (b.alt && !b.ctrl && !b.meta && !b.shift && /^Digit[1-9]$/.test(b.code)) {
     return 'Alt/Option + 1–9 is reserved for changing the speaker.';
   }
+  if ((b.ctrl || b.meta) && !b.alt && !b.shift && (b.code === 'Enter' || b.code === 'NumpadEnter')) {
+    return 'That shortcut is reserved for splitting a box.';
+  }
   return null;
 }
 

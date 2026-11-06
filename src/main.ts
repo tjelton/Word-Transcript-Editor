@@ -83,6 +83,8 @@ const view = new TranscriptView(els.transcript, els.transcriptPane, {
     player.seek(seg.start);
     void player.play();
   },
+  onStructureChange: () => current && updateDocInfo(current),
+  audio: () => (player.loaded ? { time: els.audio.currentTime, duration: els.audio.duration || 0 } : null),
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -170,10 +172,14 @@ function showDocument(doc: OpenDocument): void {
   els.transcript.hidden = false;
   els.exportBtn.disabled = false;
   els.closeBtn.hidden = false;
+  updateDocInfo(doc);
+  view.setTime(els.audio.currentTime, false);
+}
+
+function updateDocInfo(doc: OpenDocument): void {
   const speakers = new Set(doc.segments.map((s) => s.speaker)).size;
   els.docInfo.textContent = `${doc.name} · ${doc.segments.length} segments · ${speakers} speaker${speakers === 1 ? '' : 's'}`;
   els.docInfo.title = els.docInfo.textContent;
-  view.setTime(els.audio.currentTime, false);
 }
 
 async function openDocFile(file: File): Promise<void> {
@@ -440,6 +446,9 @@ function kbd(text: string): HTMLElement {
 function renderShortcuts(): void {
   const items: [Node, string][] = ACTION_IDS.map((id) => [kbd(formatBinding(settings.bindings[id])), actionLabel(id, settings)]);
   items.push([kbd(IS_MAC ? '⌥1 … ⌥9' : 'Alt+1 … 9'), 'Set the speaker of the segment you are editing (in list order)']);
+  items.push([kbd(IS_MAC ? '⌘↩' : 'Ctrl+Enter'), 'Split the box at the cursor (the new box starts at the audio position)']);
+  items.push([kbd(IS_MAC ? '⌫' : 'Backspace'), 'At the start of a box: merge it into the box above']);
+  items.push([document.createTextNode('+ Add box'), 'Hover between two boxes to add an empty one']);
   items.push([document.createTextNode('Click time'), 'Play from that segment']);
   els.shortcutList.replaceChildren(
     ...items.flatMap(([key, label]) => {

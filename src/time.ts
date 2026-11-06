@@ -20,6 +20,23 @@ export function formatClock(seconds: number): string {
 }
 
 /**
+ * Format seconds as a transcript timestamp in the same style as `example`
+ * ("00:00:03" -> "00:01:05", "0:03" -> "1:05"). Hours are added when needed.
+ */
+export function formatStamp(seconds: number, example: string): string {
+  const s = Math.max(0, Math.floor((Number.isFinite(seconds) ? seconds : 0) + 1e-6));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const parts = example.trim().split(':');
+  if (parts.length === 3 || h > 0) {
+    const hourWidth = parts.length === 3 ? parts[0].length : 1;
+    return `${String(h).padStart(hourWidth, '0')}:${pad2(m)}:${pad2(s % 60)}`;
+  }
+  return `${String(m).padStart(parts[0].length, '0')}:${pad2(s % 60)}`;
+}
+
+/**
  * Index of the segment playing at time `t`: the last segment whose start is <= t.
  * `starts` must be in ascending order. Returns -1 before the first segment.
  */
