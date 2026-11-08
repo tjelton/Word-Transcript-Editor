@@ -1,5 +1,7 @@
 # Transcript Editor
 
+> [https://tjelton.github.io/Word-Transcript-Editor/](https://tjelton.github.io/Word-Transcript-Editor/)
+
 Correct transcripts made by **Microsoft Word's Transcribe** feature while listening to the recording, using the keyboard.
 
 - The transcript is on the left. Timestamps are read-only; you can change the **speaker** of any segment and edit the **text** directly.
